@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <link rel="manifest" href="manifest.json">
+        <meta name="theme-color" content="#ffffff">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="My App">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام محاسبة مطعم مهران الشامل</title>
+    <!-- Google Fonts: Cairo & Tajawal -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        burgundy: {
+                            DEFAULT: '#7A1C25',
+                            dark: '#541219',
+                            light: '#9E2A35',
+                            soft: '#FAF0F1'
+                        },
+                        cream: {
+                            DEFAULT: '#FAF7F2',
+                            card: '#FFFFFF',
+                            darker: '#F0EAE1',
+                            accent: '#E6DCCE'
+                        },
+                        gold: {
+                            DEFAULT: '#D4AF37',
+                            dark: '#AA820A',
+                            light: '#F3E5AB'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        tajawal: ['Tajawal', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #FAF7F2;
+            color: #2D2828;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #F0EAE1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #7A1C25;
+            border-radius: 4px;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Top Header / Bar -->
+    <header class="bg-burgundy text-white shadow-xl sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                
+                <!-- Logo & Title -->
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white text-burgundy rounded-full flex items-center justify-center font-extrabold text-2xl shadow-inner border-2 border-gold">
+                        م
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-black tracking-wide text-white flex items-center gap-2">
+                            مطعم مهران 
+                            <span id="currentBranchBadge" class="text-xs bg-gold text-burgundy-dark font-bold px-2.5 py-0.5 rounded-full shadow-sm">الفرع الثاني</span>
+                        </h1>
+                        <p class="text-xs text-cream-accent">نظام المحاسبة والإدارة المالية الدقيق</p>
+                    </div>
+                </div>
+
+                <!-- Branch Selector Pills -->
+                <div class="flex items-center bg-burgundy-dark p-1.5 rounded-xl border border-burgundy-light/40 shadow-inner">
+                    <button onclick="switchBranch('branch1')" id="btnBranch1" class="px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 text-white/80 hover:text-white">
+                        <i class="fa-solid fa-utensils ml-1"></i> مطعم مهران 1
+                    </button>
+                    <button onclick="switchBranch('branch2')" id="btnBranch2" class="px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 bg-burgundy text-white shadow-md border border-gold/30">
+                        <i class="fa-solid fa-store ml-1"></i> مطعم مهران 2
+                    </button>
+                    <button onclick="switchBranch('all')" id="btnBranchAll" class="px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 text-white/80 hover:text-white">
+                        <i class="fa-solid fa-layer-group ml-1"></i> إجمالي الفرعين
+                    </button>
+                </div>
+
+                <!-- Month Selector & Storage Controls -->
+                <div class="flex items-center gap-2 flex-wrap justify-end">
+                    <div class="bg-white/10 px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-2 text-xs sm:text-sm">
+                        <i class="fa-regular fa-calendar-check text-gold"></i>
+                        <span class="font-semibold text-cream-accent">الشهر:</span>
+                        <input type="month" id="monthPicker" value="2026-09" onchange="onMonthChange()" class="bg-transparent text-white font-bold outline-none cursor-pointer">
+                    </div>
+
+                    <button onclick="exportJSONBackup()" title="تصدير نسخة احتياطية" class="bg-gold hover:bg-gold-dark text-burgundy-dark px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-1.5 transition shadow">
+                        <i class="fa-solid fa-download"></i>
+                        <span class="hidden sm:inline">تصدير</span>
+                    </button>
+
+                    <label class="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-1.5 transition border border-white/20 cursor-pointer">
+                        <i class="fa-solid fa-upload"></i>
+                        <span class="hidden sm:inline">استيراد</span>
+                        <input type="file" accept=".json" onchange="importJSONBackup(event)" class="hidden">
+                    </label>
+
+                    <button onclick="window.print()" title="طباعة التقرير" class="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-1.5 transition border border-white/20">
+                        <i class="fa-solid fa-print"></i>
+                        <span class="hidden sm:inline">طباعة</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+        
+        <!-- Navigation Tabs -->
+        <div class="bg-cream-card rounded-2xl p-2 shadow-md border border-cream-darker mb-6 no-print overflow-x-auto custom-scrollbar">
+            <div class="flex items-center min-w-max gap-2">
+                <button onclick="setActiveTab('summary')" id="tabSummary" class="flex-1 px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 bg-burgundy text-white shadow-sm">
+                    <i class="fa-solid fa-chart-pie"></i> الملخص المالي العام
+                </button>
+                <button onclick="setActiveTab('sales')" id="tabSales" class="flex-1 px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 text-gray-700 hover:bg-cream-darker">
+                    <i class="fa-solid fa-cash-register"></i> سجل المبيعات اليومية
+                </button>
+                <button onclick="setActiveTab('expenses')" id="tabExpenses" class="flex-1 px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 text-gray-700 hover:bg-cream-darker">
+                    <i class="fa-solid fa-receipt"></i> المصاريف التشغيلية
+                </button>
+                <button onclick="setActiveTab('salaries')" id="tabSalaries" class="flex-1 px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 text-gray-700 hover:bg-cream-darker">
+                    <i class="fa-solid fa-users-gear"></i> رواتب الموظفين
+                </button>
+                <button onclick="setActiveTab('annual')" id="tabAnnual" class="flex-1 px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 text-gray-700 hover:bg-cream-darker border-r border-cream-darker">
+                    <i class="fa-solid fa-calendar-days text-gold-dark"></i> ملخص كافة الأشهر
+                </button>
+            </div>
+        </div>
+
+        <!-- Dynamic Date Header Info -->
+        <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-burgundy-soft/80 border-r-4 border-burgundy p-4 rounded-xl shadow-sm gap-2">
+            <div>
+                <h2 class="text-lg font-bold text-burgundy-dark flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-day text-burgundy"></i>
+                    بيانات شهر <span id="currentMonthLabel" class="text-burgundy font-black">أيلول / سبتمبر 2026</span>
+                </h2>
+                <p class="text-xs text-gray-600 mt-0.5" id="branchContextText">تعرض الحسابات حالياً لـ: مطعم مهران (الفرع الثاني)</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="generateMonthlyDays()" class="bg-white hover:bg-cream-darker text-burgundy border border-burgundy/30 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-arrows-rotate"></i> إعادة تهيئة أيام الشهر
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= TAB 1: SUMMARY DASHBOARD ================= -->
+        <section id="secSummary" class="space-y-6">
+            <!-- Top Metric Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                
+                <!-- Total Sales Card -->
+                <div class="bg-white p-5 rounded-2xl shadow-md border-r-4 border-emerald-500 hover:shadow-lg transition">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-gray-500">إجمالي المبيعات (الكاش) (+)</span>
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                            <i class="fa-solid fa-chart-line text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-gray-800" id="cardTotalSales">0.00</div>
+                    <p class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                        <span class="text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> الكاش المباشر الشامل</span> (الفيزا والتطبيقات تفاصيل من ضمنه)
+                    </p>
+                </div>
+
+                <!-- Operating Expenses Card -->
+                <div class="bg-white p-5 rounded-2xl shadow-md border-r-4 border-amber-500 hover:shadow-lg transition">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-gray-500">المصاريف التشغيلية (-)</span>
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                            <i class="fa-solid fa-boxes-packing text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-gray-800" id="cardTotalExpenses">0.00</div>
+                    <p class="text-xs text-gray-500 mt-2">مشتريات الفواتير، الصيانة، والنثريات</p>
+                </div>
+
+                <!-- Total Salaries Card -->
+                <div class="bg-white p-5 rounded-2xl shadow-md border-r-4 border-purple-500 hover:shadow-lg transition">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-gray-500">إجمالي رواتب الموظفين (-)</span>
+                        <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                            <i class="fa-solid fa-user-check text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-gray-800" id="cardTotalSalaries">0.00</div>
+                    <p class="text-xs text-gray-500 mt-2">مجموع السُلف والدفعات الأسبوعية</p>
+                </div>
+
+                <!-- Net Profit/Loss Card -->
+                <div id="netProfitCard" class="bg-burgundy text-white p-5 rounded-2xl shadow-lg border-r-4 border-gold hover:shadow-xl transition relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-cream-accent">الصافي النهائي (الأرباح / الخسائر)</span>
+                        <div class="w-9 h-9 rounded-xl bg-gold/20 text-gold flex items-center justify-center border border-gold/30">
+                            <i class="fa-solid fa-scale-balanced text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="text-3xl sm:text-4xl font-black text-white" id="cardNetProfit">0.00</div>
+                    <p class="text-xs text-cream-accent/90 mt-2">الصافي = الكاش - (المصاريف + الرواتب)</p>
+                </div>
+
+            </div>
+
+            <!-- Detailed Breakdowns Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Sales Channels Breakdown -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-cream-darker lg:col-span-1">
+                    <h3 class="text-base font-bold text-burgundy-dark mb-4 pb-2 border-b border-gray-100 flex items-center justify-between">
+                        <span><i class="fa-solid fa-pie-chart text-gold-dark ml-2"></i> تفاصيل المبيعات (من ضمن الكاش)</span>
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <div class="p-3 bg-cream/60 rounded-xl flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                <span class="text-xs font-bold text-gray-700">إجمالي المبيعات (الكاش)</span>
+                            </div>
+                            <span class="font-extrabold text-sm text-gray-900" id="chanDirectSales">0.00</span>
+                        </div>
+
+                        <div class="p-3 bg-slate-100/80 rounded-xl border border-slate-200 flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                                <span class="text-xs font-bold text-slate-700">مبيعات الفيزا (ضمن الكاش)</span>
+                            </div>
+                            <span class="font-extrabold text-sm text-slate-800" id="chanVisaSales">0.00</span>
+                        </div>
+
+                        <div class="p-3 bg-slate-100/80 rounded-xl border border-slate-200 flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-slate-400"></div>
+                                <span class="text-xs font-bold text-slate-700">التطبيقات (ضمن الكاش)</span>
+                            </div>
+                            <span class="font-extrabold text-sm text-slate-800" id="chanAppsTotal">0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 h-48 relative flex items-center justify-center">
+                        <canvas id="salesChannelsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Monthly Financial Overview Table -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-cream-darker lg:col-span-2">
+                    <h3 class="text-base font-bold text-burgundy-dark mb-4 pb-2 border-b border-gray-100 flex items-center justify-between">
+                        <span><i class="fa-solid fa-file-invoice-dollar text-burgundy ml-2"></i> كشف الملخص المالي التفصيلي</span>
+                    </h3>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-sm">
+                            <thead>
+                                <tr class="bg-burgundy text-white text-xs">
+                                    <th class="p-3 rounded-r-lg">البند المالي</th>
+                                    <th class="p-3">القيمة الإجمالية</th>
+                                    <th class="p-3 rounded-l-lg">ملاحظات وتفاصيل الحساب</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr>
+                                    <td class="p-3 font-bold text-gray-800">إجمالي المبيعات الكلية (الكاش) (+)</td>
+                                    <td class="p-3 font-black text-emerald-600 text-base" id="summaryTblSales">0.00</td>
+                                    <td class="p-3 text-xs text-gray-500">مجموع الكاش المباشر الشامل لجميع المبيعات</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 font-bold text-gray-800">إجمالي المصاريف التشغيلية (-)</td>
+                                    <td class="p-3 font-black text-amber-600 text-base" id="summaryTblExpenses">0.00</td>
+                                    <td class="p-3 text-xs text-gray-500">مجموع الفواتير، المشتريات، والمصاريف النثرية</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 font-bold text-gray-800">إجمالي الرواتب المدفوعة (-)</td>
+                                    <td class="p-3 font-black text-purple-600 text-base" id="summaryTblSalaries">0.00</td>
+                                    <td class="p-3 text-xs text-gray-500">مجموع سُلف ودفعات الموظفين الأسبوعية</td>
+                                </tr>
+                                <tr class="bg-burgundy-soft font-bold">
+                                    <td class="p-3 text-burgundy-dark font-extrabold">الصافي النهائي (الأرباح / الخسائر)</td>
+                                    <td class="p-3 text-burgundy font-black text-lg" id="summaryTblNet">0.00</td>
+                                    <td class="p-3 text-xs text-burgundy-dark">الصافي = الكاش - (المصاريف + الرواتب)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="financialHealthBox" class="mt-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-xl mt-0.5"></i>
+                        <div>
+                            <h4 class="text-sm font-bold text-emerald-900">الموقف المالي ممتاز</h4>
+                            <p class="text-xs text-emerald-700 mt-0.5">يحقق المطعم صافي أرباح إيجابي لشهر هذا التقرير بحمد الله.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: DAILY SALES ================= -->
+        <section id="secSales" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-cream-darker">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-3 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-base font-bold text-burgundy-dark flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-days text-burgundy"></i> سجل المبيعات اليومية لشهر <span id="salesMonthTitle"></span>
+                        </h3>
+                        <p class="text-xs text-gray-500">تنويه: المجموع المعتمد هو (الكاش). بينما الفيزا والتطبيقات هي تفاصيل توثيقية مفصولة من ضمن الكاش.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500 font-bold">إجمالي الكاش للشهر:</span>
+                        <span class="text-lg font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200" id="salesMonthTotalBadge">0.00</span>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-sm">
+                        <thead id="salesTableHeader">
+                            <!-- Header populated dynamically by JS -->
+                        </thead>
+                        <tbody id="salesTableBody" class="divide-y divide-gray-100">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                        <tfoot id="salesTableFooter">
+                            <!-- Footer totals populated dynamically -->
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: OPERATING EXPENSES ================= -->
+        <section id="secExpenses" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-cream-darker">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-3 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-base font-bold text-burgundy-dark flex items-center gap-2">
+                            <i class="fa-solid fa-receipt text-burgundy"></i> سجل المصاريف التشغيلية والمشتريات
+                        </h3>
+                        <p class="text-xs text-gray-500">توثيق جميع الفواتير والمشتريات اليومية ومصاريف الصيانة والنثريات</p>
+                    </div>
+
+                    <button onclick="addNewExpenseRow()" class="bg-burgundy hover:bg-burgundy-dark text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-plus"></i> إضافة بند مصروف جديد
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-sm">
+                        <thead>
+                            <tr class="bg-burgundy text-white text-xs font-bold">
+                                <th class="p-3 rounded-r-lg w-36">التاريخ</th>
+                                <th class="p-3">نوع المصروف / تفاصيل البيان</th>
+                                <th class="p-3 w-40">المبلغ</th>
+                                <th class="p-3 rounded-l-lg w-20 text-center">إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expensesTableBody" class="divide-y divide-gray-100">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-cream-darker font-black text-gray-900 border-t-2 border-burgundy">
+                                <td class="p-3" colspan="2">إجمالي المصاريف التشغيلية للشهر:</td>
+                                <td class="p-3 text-amber-700 text-lg font-black" id="sumTotalExpenses">0.00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: PAYROLL ================= -->
+        <section id="secSalaries" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-cream-darker">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-3 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-base font-bold text-burgundy-dark flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-burgundy"></i> سجل رواتب الموظفين والدفعات الأسبوعية
+                        </h3>
+                        <p class="text-xs text-gray-500">تسجيل السُلف والدفعات الأسبوعية وتجميع إجمالي المدفوع لكل موظف تلقائياً</p>
+                    </div>
+
+                    <button onclick="addNewEmployeeRow()" class="bg-burgundy hover:bg-burgundy-dark text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-user-plus"></i> إضافة موظف جديد
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-sm">
+                        <thead>
+                            <tr class="bg-burgundy text-white text-xs font-bold">
+                                <th class="p-3 rounded-r-lg">اسم الموظف</th>
+                                <th class="p-3">الأسبوع 1</th>
+                                <th class="p-3">الأسبوع 2</th>
+                                <th class="p-3">الأسبوع 3</th>
+                                <th class="p-3">الأسبوع 4</th>
+                                <th class="p-3 font-black bg-burgundy-dark">إجمالي المدفوع</th>
+                                <th class="p-3">ملاحظات</th>
+                                <th class="p-3 rounded-l-lg text-center">حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salariesTableBody" class="divide-y divide-gray-100">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-cream-darker font-black text-gray-900 border-t-2 border-burgundy">
+                                <td class="p-3">الإجمالي العام للدفعات:</td>
+                                <td class="p-3 text-purple-800" id="sumSalariesW1">0.00</td>
+                                <td class="p-3 text-purple-800" id="sumSalariesW2">0.00</td>
+                                <td class="p-3 text-purple-800" id="sumSalariesW3">0.00</td>
+                                <td class="p-3 text-purple-800" id="sumSalariesW4">0.00</td>
+                                <td class="p-3 text-purple-900 text-lg font-black bg-purple-100" id="sumSalariesTotal">0.00</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= TAB 5: ANNUAL / ALL MONTHS SUMMARY ================= -->
+        <section id="secAnnual" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-cream-darker">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-xl font-black text-burgundy-dark flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-gold-dark"></i> التقرير التراكمي لملخص كافة الأشهر
+                        </h3>
+                        <p class="text-xs text-gray-500">حساب مجمع وشامل لكل الأشهر المسجلة بالمطعم لمتابعة الأداء المالي السنوي</p>
+                    </div>
+
+                    <button onclick="recalculateAnnualSummary()" class="bg-gold hover:bg-gold-dark text-burgundy-dark px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 shadow">
+                        <i class="fa-solid fa-calculator"></i> تحديث ملخص الأشهر
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-sm">
+                        <thead>
+                            <tr class="bg-burgundy text-white text-xs font-bold">
+                                <th class="p-3 rounded-r-lg">الشهر / السنة</th>
+                                <th class="p-3">إجمالي المبيعات (الكاش)</th>
+                                <th class="p-3">إجمالي المصاريف</th>
+                                <th class="p-3">إجمالي الرواتب</th>
+                                <th class="p-3 bg-burgundy-dark font-black">الصافي النهائي</th>
+                                <th class="p-3 rounded-l-lg">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="annualTableBody" class="divide-y divide-gray-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-cream-darker font-black text-gray-900 border-t-2 border-burgundy">
+                                <td class="p-3">الإجمالي التراكمي الشامل:</td>
+                                <td class="p-3 text-emerald-700 text-base" id="annTotalSales">0.00</td>
+                                <td class="p-3 text-amber-700 text-base" id="annTotalExpenses">0.00</td>
+                                <td class="p-3 text-purple-700 text-base" id="annTotalSalaries">0.00</td>
+                                <td class="p-3 text-burgundy text-xl font-black bg-gold/30" id="annNetProfit">0.00</td>
+                                <td class="p-3 text-xs text-gray-500">دقيق 100%</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-burgundy-dark text-cream-accent py-4 text-center text-xs border-t border-burgundy-light/20 no-print">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div>
+                © 2026 مطعم مهران - جميع الحقوق محفوظة
+            </div>
+            <div class="text-cream-accent/70">
+                تطبيق المحاسبة والإدارة المالية للفرعين
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Business & Data Logic -->
+    <script>
+        // Store Application State
+        let currentBranch = 'branch2'; // 'branch1', 'branch2', 'all'
+        let currentMonth = '2026-09';
+        let currentTab = 'summary';
+
+        // Local Data Stores
+        let storeData = {
+            branch1: {},
+            branch2: {}
+        };
+
+        let chartInstance = null;
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAllDataFromStorage();
+            ensureMonthInitialized(currentBranch, currentMonth);
+            renderAllViews();
+        });
+
+        // Switch Branch Context
+        function switchBranch(branch) {
+            currentBranch = branch;
+            
+            // Update UI Buttons
+            document.getElementById('btnBranch1').className = branch === 'branch1' ? 'px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 bg-burgundy text-white shadow-md border border-gold/30' : 'px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 text-white/80 hover:text-white';
+            document.getElementById('btnBranch2').className = branch === 'branch2' ? 'px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 bg-burgundy text-white shadow-md border border-gold/30' : 'px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 text-white/80 hover:text-white';
+            document.getElementById('btnBranchAll').className = branch === 'all' ? 'px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 bg-burgundy text-white shadow-md border border-gold/30' : 'px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 text-white/80 hover:text-white';
+
+            const badge = document.getElementById('currentBranchBadge');
+            const contextText = document.getElementById('branchContextText');
+
+            if (branch === 'branch1') {
+                badge.innerText = 'الفرع الأول';
+                contextText.innerText = 'تعرض الحسابات حالياً لـ: مطعم مهران (الفرع الأول)';
+            } else if (branch === 'branch2') {
+                badge.innerText = 'الفرع الثاني';
+                contextText.innerText = 'تعرض الحسابات حالياً لـ: مطعم مهران (الفرع الثاني)';
+            } else {
+                badge.innerText = 'إجمالي الفرعين';
+                contextText.innerText = 'تعرض الحسابات حالياً لـ: إجمالي مطعم مهران (الفرع 1 + الفرع 2)';
+            }
+
+            ensureMonthInitialized(branch, currentMonth);
+            renderAllViews();
+        }
+
+        function onMonthChange() {
+            currentMonth = document.getElementById('monthPicker').value;
+            const [yr, mo] = currentMonth.split('-');
+            const dateObj = new Date(yr, mo - 1);
+            const monthName = dateObj.toLocaleString('ar-JO', { month: 'long' });
+            document.getElementById('currentMonthLabel').innerText = `${monthName} ${yr}`;
+            
+            ensureMonthInitialized(currentBranch, currentMonth);
+            renderAllViews();
+        }
+
+        function setActiveTab(tabName) {
+            currentTab = tabName;
+            ['summary', 'sales', 'expenses', 'salaries', 'annual'].forEach(t => {
+                const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+                const sec = document.getElementById('sec' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (t === tabName) {
+                    btn.className = "flex-1 px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 bg-burgundy text-white shadow-sm";
+                    sec.classList.remove('hidden');
+                } else {
+                    btn.className = "flex-1 px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 text-gray-700 hover:bg-cream-darker";
+                    sec.classList.add('hidden');
+                }
+            });
+            renderAllViews();
+        }
+
+        // Init Data Template
+        function ensureMonthInitialized(branchKey, monthKey) {
+            const initForSingle = (bKey) => {
+                if (!storeData[bKey]) storeData[bKey] = {};
+                if (!storeData[bKey][monthKey]) {
+                    storeData[bKey][monthKey] = {
+                        sales: generateDaysForMonth(monthKey),
+                        expenses: [],
+                        salaries: []
+                    };
+                }
+            };
+
+            if (branchKey === 'all') {
+                initForSingle('branch1');
+                initForSingle('branch2');
+            } else {
+                initForSingle(branchKey);
+            }
+        }
+
+        function generateDaysForMonth(monthKey) {
+            const [year, month] = monthKey.split('-').map(Number);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const daysArr = [];
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayStr = String(i).padStart(2, '0');
+                const fullDate = `${year}-${String(month).padStart(2, '0')}-${dayStr}`;
+                daysArr.push({
+                    date: fullDate,
+                    directCash: 0,
+                    visa: 0,
+                    ashyayi: 0,
+                    talabat: 0,
+                    careem: 0,
+                    notes: ''
+                });
+            }
+            return daysArr;
+        }
+
+        function generateMonthlyDays() {
+            if (confirm('هل أنت تأكد من إخلاء السجل وتجديد أيام الشهر الحالية؟')) {
+                if (currentBranch === 'all') {
+                    storeData['branch1'][currentMonth].sales = generateDaysForMonth(currentMonth);
+                    storeData['branch2'][currentMonth].sales = generateDaysForMonth(currentMonth);
+                } else {
+                    storeData[currentBranch][currentMonth].sales = generateDaysForMonth(currentMonth);
+                }
+                saveAllDataToStorage();
+                renderAllViews();
+            }
+        }
+
+        // Master Calculations
+        function getAggregatedMonthData(monthKey) {
+            if (currentBranch !== 'all') {
+                return storeData[currentBranch][monthKey] || { sales: [], expenses: [], salaries: [] };
+            }
+
+            // Aggregate Branch 1 + Branch 2
+            const b1 = storeData.branch1[monthKey] || { sales: [], expenses: [], salaries: [] };
+            const b2 = storeData.branch2[monthKey] || { sales: [], expenses: [], salaries: [] };
+
+            // Merge Sales Days
+            const mergedSales = (b1.sales.length ? b1.sales : generateDaysForMonth(monthKey)).map((day, idx) => {
+                const dayB2 = (b2.sales && b2.sales[idx]) ? b2.sales[idx] : { directCash: 0, visa: 0, ashyayi: 0, talabat: 0, careem: 0 };
+                return {
+                    date: day.date,
+                    directCash: (Number(day.directCash) || 0) + (Number(dayB2.directCash) || 0),
+                    visa: (Number(day.visa) || 0) + (Number(dayB2.visa) || 0),
+                    ashyayi: (Number(day.ashyayi) || 0) + (Number(dayB2.ashyayi) || 0),
+                    talabat: (Number(day.talabat) || 0), // Only B1
+                    careem: (Number(day.careem) || 0),   // Only B1
+                    notes: [day.notes, dayB2.notes].filter(Boolean).join(' | ')
+                };
+            });
+
+            return {
+                sales: mergedSales,
+                expenses: [...(b1.expenses || []), ...(b2.expenses || [])],
+                salaries: [...(b1.salaries || []), ...(b2.salaries || [])]
+            };
+        }
+
+        // Render Views
+        function renderAllViews() {
+            const data = getAggregatedMonthData(currentMonth);
+
+            // Calculations
+            // ** REQUIREMENT **: Grand Total = Cash ONLY. Visa and Applications are details INSIDE the Cash.
+            let sumDirectCash = 0, sumVisa = 0, sumAshyayi = 0, sumTalabat = 0, sumCareem = 0;
+            
+            data.sales.forEach(d => {
+                sumDirectCash += Number(d.directCash) || 0;
+                sumVisa += Number(d.visa) || 0;
+                sumAshyayi += Number(d.ashyayi) || 0;
+                sumTalabat += Number(d.talabat) || 0;
+                sumCareem += Number(d.careem) || 0;
+            });
+
+            const totalGrandSales = sumDirectCash; // Grand Total is Cash alone
+            const sumAppsTotal = sumAshyayi + sumTalabat + sumCareem;
+
+            // Expenses Sum
+            let totalExpenses = 0;
+            data.expenses.forEach(e => totalExpenses += Number(e.amount) || 0);
+
+            // Salaries Sum
+            let totalSalaries = 0;
+            data.salaries.forEach(s => {
+                totalSalaries += (Number(s.w1)||0) + (Number(s.w2)||0) + (Number(s.w3)||0) + (Number(s.w4)||0);
+            });
+
+            const netProfit = totalGrandSales - (totalExpenses + totalSalaries);
+
+            // Update Summary Tab
+            document.getElementById('cardTotalSales').innerText = totalGrandSales.toFixed(2);
+            document.getElementById('cardTotalExpenses').innerText = totalExpenses.toFixed(2);
+            document.getElementById('cardTotalSalaries').innerText = totalSalaries.toFixed(2);
+            
+            const netCard = document.getElementById('cardNetProfit');
+            netCard.innerText = netProfit.toFixed(2);
+            
+            document.getElementById('chanDirectSales').innerText = sumDirectCash.toFixed(2);
+            document.getElementById('chanVisaSales').innerText = sumVisa.toFixed(2);
+            document.getElementById('chanAppsTotal').innerText = sumAppsTotal.toFixed(2);
+
+            document.getElementById('summaryTblSales').innerText = totalGrandSales.toFixed(2);
+            document.getElementById('summaryTblExpenses').innerText = totalExpenses.toFixed(2);
+            document.getElementById('summaryTblSalaries').innerText = totalSalaries.toFixed(2);
+            document.getElementById('summaryTblNet').innerText = netProfit.toFixed(2);
+
+            renderChart(sumDirectCash, sumVisa, sumAppsTotal);
+            renderSalesTable(data.sales, sumDirectCash, sumVisa, sumAshyayi, sumTalabat, sumCareem, totalGrandSales);
+            renderExpensesTable(data.expenses, totalExpenses);
+            renderSalariesTable(data.salaries, totalSalaries);
+            renderAnnualSummary();
+        }
+
+        // Render Chart
+        function renderChart(cash, visa, apps) {
+            const ctx = document.getElementById('salesChannelsChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['إجمالي المبيعات (كاش)', 'فيزا (ضمن الكاش)', 'تطبيقات (ضمن الكاش)'],
+                    datasets: [{
+                        data: [cash, visa, apps],
+                        backgroundColor: ['#10B981', '#3B82F6', '#94A3B8'],
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Render Sales Table
+        function renderSalesTable(salesDays, sumCash, sumVisa, sumAsh, sumTal, sumCar, grandTotal) {
+            document.getElementById('salesMonthTitle').innerText = currentMonth;
+            document.getElementById('salesMonthTotalBadge').innerText = grandTotal.toFixed(2);
+
+            const headerEl = document.getElementById('salesTableHeader');
+            const bodyEl = document.getElementById('salesTableBody');
+            const footEl = document.getElementById('salesTableFooter');
+
+            // Columns setup based on Branch
+            const isB1 = currentBranch === 'branch1';
+            const isAll = currentBranch === 'all';
+
+            let thHTML = `
+                <tr class="bg-burgundy text-white text-xs font-bold">
+                    <th class="p-3 rounded-r-lg w-32">التاريخ</th>
+                    <th class="p-3 bg-emerald-800 font-extrabold">المبيعات المباشرة (الكاش)</th>
+                    <th class="p-3 bg-slate-800">مبيعات الفيزا (ضمن الكاش)</th>
+                    <th class="p-3 bg-slate-800">أشيائي (ضمن الكاش)</th>`;
+            
+            if (isB1 || isAll) {
+                thHTML += `<th class="p-3 bg-slate-800">طلبات (ضمن الكاش)</th><th class="p-3 bg-slate-800">كريم (ضمن الكاش)</th>`;
+            }
+
+            thHTML += `
+                    <th class="p-3 font-black bg-burgundy-dark">مجموع اليوم (الكاش)</th>
+                    <th class="p-3 rounded-l-lg">ملاحظات</th>
+                </tr>`;
+            headerEl.innerHTML = thHTML;
+
+            // Rows
+            let rowsHTML = '';
+            salesDays.forEach((day, idx) => {
+                const dayCash = Number(day.directCash) || 0;
+                const dayTotal = dayCash; // Grand Total is Cash only
+
+                const isReadOnly = currentBranch === 'all';
+
+                rowsHTML += `
+                    <tr class="hover:bg-cream-darker/40 transition">
+                        <td class="p-2.5 font-bold text-gray-800 text-xs whitespace-nowrap">${day.date}</td>
+                        <td class="p-2"><input type="number" step="0.01" value="${day.directCash || ''}" ${isReadOnly ? 'readonly' : ''} onchange="updateSalesVal(${idx}, 'directCash', this.value)" class="w-full bg-emerald-50/60 border border-emerald-300 rounded px-2 py-1 text-sm font-black text-emerald-800 outline-none focus:border-burgundy"></td>
+                        <td class="p-2 bg-slate-50"><input type="number" step="0.01" value="${day.visa || ''}" ${isReadOnly ? 'readonly' : ''} onchange="updateSalesVal(${idx}, 'visa', this.value)" class="w-full bg-slate-100 border border-slate-200 rounded px-2 py-1 text-sm font-semibold text-slate-700 outline-none focus:border-burgundy"></td>
+                        <td class="p-2 bg-slate-50"><input type="number" step="0.01" value="${day.ashyayi || ''}" ${isReadOnly ? 'readonly' : ''} onchange="updateSalesVal(${idx}, 'ashyayi', this.value)" class="w-full bg-slate-100 border border-slate-200 rounded px-2 py-1 text-sm font-semibold text-slate-700 outline-none focus:border-burgundy"></td>`;
+
+                if (isB1 || isAll) {
+                    rowsHTML += `
+                        <td class="p-2 bg-slate-50"><input type="number" step="0.01" value="${day.talabat || ''}" ${isReadOnly ? 'readonly' : ''} onchange="updateSalesVal(${idx}, 'talabat', this.value)" class="w-full bg-slate-100 border border-slate-200 rounded px-2 py-1 text-sm font-semibold text-slate-700 outline-none focus:border-burgundy"></td>
+                        <td class="p-2 bg-slate-50"><input type="number" step="0.01" value="${day.careem || ''}" ${isReadOnly ? 'readonly' : ''} onchange="updateSalesVal(${idx}, 'careem', this.value)" class="w-full bg-slate-100 border border-slate-200 rounded px-2 py-1 text-sm font-semibold text-slate-700 outline-none focus:border-burgundy"></td>`;
+                }
+
+                rowsHTML += `
+                        <td class="p-2.5 font-black text-burgundy text-base bg-burgundy-soft/40">${dayTotal.toFixed(2)}</td>
+                        <td class="p-2"><input type="text" value="${day.notes || ''}" ${isReadOnly ? 'readonly' : ''} onchange="updateSalesVal(${idx}, 'notes', this.value)" class="w-full bg-transparent border-b border-gray-200 text-xs py-1 outline-none focus:border-burgundy" placeholder="ملاحظة..."></td>
+                    </tr>`;
+            });
+            bodyEl.innerHTML = rowsHTML;
+
+            // Footer
+            let footHTML = `
+                <tr class="bg-cream-darker font-black text-gray-900 border-t-2 border-burgundy">
+                    <td class="p-3">الإجمالي العام للشهر:</td>
+                    <td class="p-3 text-emerald-700 text-base">${sumCash.toFixed(2)}</td>
+                    <td class="p-3 text-slate-600 text-sm bg-slate-200">${sumVisa.toFixed(2)}</td>
+                    <td class="p-3 text-slate-600 text-sm bg-slate-200">${sumAsh.toFixed(2)}</td>`;
+
+            if (isB1 || isAll) {
+                footHTML += `
+                    <td class="p-3 text-slate-600 text-sm bg-slate-200">${sumTal.toFixed(2)}</td>
+                    <td class="p-3 text-slate-600 text-sm bg-slate-200">${sumCar.toFixed(2)}</td>`;
+            }
+
+            footHTML += `
+                    <td class="p-3 text-burgundy text-lg font-black bg-gold/20">${grandTotal.toFixed(2)}</td>
+                    <td class="p-3 text-xs font-normal text-gray-500">المجموع يعتمد الكاش فقط</td>
+                </tr>`;
+            footEl.innerHTML = footHTML;
+        }
+
+        function updateSalesVal(index, key, val) {
+            if (currentBranch === 'all') return;
+            storeData[currentBranch][currentMonth].sales[index][key] = key === 'notes' ? val : (parseFloat(val) || 0);
+            saveAllDataToStorage();
+            renderAllViews();
+        }
+
+        // Render Expenses Table
+        function renderExpensesTable(expensesList, sumExpenses) {
+            const bodyEl = document.getElementById('expensesTableBody');
+            document.getElementById('sumTotalExpenses').innerText = sumExpenses.toFixed(2);
+
+            let html = '';
+            expensesList.forEach((exp, idx) => {
+                html += `
+                    <tr class="hover:bg-cream-darker/40 transition">
+                        <td class="p-2"><input type="date" value="${exp.date}" onchange="updateExpenseVal(${idx}, 'date', this.value)" class="bg-cream-soft/50 border border-gray-200 rounded px-2 py-1 text-xs font-bold outline-none"></td>
+                        <td class="p-2"><input type="text" value="${exp.title}" onchange="updateExpenseVal(${idx}, 'title', this.value)" class="w-full bg-cream-soft/50 border border-gray-200 rounded px-2 py-1 text-xs font-bold outline-none" placeholder="وصف المصروف / الفاتورة..."></td>
+                        <td class="p-2"><input type="number" step="0.01" value="${exp.amount || ''}" onchange="updateExpenseVal(${idx}, 'amount', this.value)" class="w-full bg-cream-soft/50 border border-gray-200 rounded px-2 py-1 text-sm font-bold text-amber-800 outline-none"></td>
+                        <td class="p-2 text-center"><button onclick="removeExpenseRow(${idx})" class="text-red-600 hover:text-red-800 p-1"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>`;
+            });
+            bodyEl.innerHTML = html;
+        }
+
+        function addNewExpenseRow() {
+            if (currentBranch === 'all') return alert('يرجى اختيار فرع محدد للإضافة.');
+            storeData[currentBranch][currentMonth].expenses.push({
+                date: `${currentMonth}-01`,
+                title: '',
+                amount: 0
+            });
+            saveAllDataToStorage();
+            renderAllViews();
+        }
+
+        function updateExpenseVal(idx, key, val) {
+            if (currentBranch === 'all') return;
+            storeData[currentBranch][currentMonth].expenses[idx][key] = key === 'amount' ? (parseFloat(val) || 0) : val;
+            saveAllDataToStorage();
+            renderAllViews();
+        }
+
+        function removeExpenseRow(idx) {
+            if (currentBranch === 'all') return;
+            storeData[currentBranch][currentMonth].expenses.splice(idx, 1);
+            saveAllDataToStorage();
+            renderAllViews();
+        }
+
+        // Render Salaries Table
+        function renderSalariesTable(salariesList, sumSalaries) {
+            const bodyEl = document.getElementById('salariesTableBody');
+            
+            let w1 = 0, w2 = 0, w3 = 0, w4 = 0;
+            salariesList.forEach(s => {
+                w1 += Number(s.w1) || 0;
+                w2 += Number(s.w2) || 0;
+                w3 += Number(s.w3) || 0;
+                w4 += Number(s.w4) || 0;
+            });
+
+            document.getElementById('sumSalariesW1').innerText = w1.toFixed(2);
+            document.getElementById('sumSalariesW2').innerText = w2.toFixed(2);
+            document.getElementById('sumSalariesW3').innerText = w3.toFixed(2);
+            document.getElementById('sumSalariesW4').innerText = w4.toFixed(2);
+            document.getElementById('sumSalariesTotal').innerText = sumSalaries.toFixed(2);
+
+            let html = '';
+            salariesList.forEach((sal, idx) => {
+                const empTotal = (Number(sal.w1)||0) + (Number(sal.w2)||0) + (Number(sal.w3)||0) + (Number(sal.w4)||0);
+                html += `
+                    <tr class="hover:bg-cream-darker/40 transition">
+                        <td class="p-2"><input type="text" value="${sal.name}" onchange="updateSalaryVal(${idx}, 'name', this.value)" class="w-full bg-cream-soft/50 border border-gray-200 rounded px-2 py-1 text-xs font-bold outline-none" placeholder="اسم الموظف..."></td>
+                        <td class="p-2"><input type="number" step="0.01" value="${sal.w1 || ''}" onchange="updateSalaryVal(${idx}, 'w1', this.value)" class="w-full bg-cream-soft/50 border border-gray-200 rounded px-2 py-1 text-xs font-bold text-purple-800 outline-none"></td>
+                        <td class="p-2"><input type="number" step="0.01" value="${sal.w2 || ''}" onchange="updateSalaryVal(${idx}, 'w2', this.value)" class="w-full bg-cream-soft/50 border border-gray-200 rounded px-2 py-1 text-xs font-bold text-purple-800 outline-none"></td>
+                        <td class="p-2"><input type="number" step="0.01" value="${sal.w3 || ''}" onchange="updateSalaryVal(${idx}, 'w3', this.value)" class="w-full bg-cream-soft/50 border border-gray-200 rounded px-2 py-1 text-xs font-bold text-purple-800 outline-none"></td>
+                        <td class="p-2"><input type="number" step="0.01" value="${sal.w4 || ''}" onchange="updateSalaryVal(${idx}, 'w4', this.value)" class="w-full bg-cream-soft/50 border border-gray-200 rounded px-2 py-1 text-xs font-bold text-purple-800 outline-none"></td>
+                        <td class="p-2.5 font-black text-purple-900 text-sm bg-purple-50">${empTotal.toFixed(2)}</td>
+                        <td class="p-2"><input type="text" value="${sal.notes || ''}" onchange="updateSalaryVal(${idx}, 'notes', this.value)" class="w-full bg-transparent border-b border-gray-200 text-xs py-1 outline-none" placeholder="ملاحظة..."></td>
+                        <td class="p-2 text-center"><button onclick="removeSalaryRow(${idx})" class="text-red-600 hover:text-red-800 p-1"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>`;
+            });
+            bodyEl.innerHTML = html;
+        }
+
+        function addNewEmployeeRow() {
+            if (currentBranch === 'all') return alert('يرجى اختيار فرع محدد للإضافة.');
+            storeData[currentBranch][currentMonth].salaries.push({
+                name: '',
+                w1: 0, w2: 0, w3: 0, w4: 0,
+                notes: ''
+            });
+            saveAllDataToStorage();
+            renderAllViews();
+        }
+
+        function updateSalaryVal(idx, key, val) {
+            if (currentBranch === 'all') return;
+            storeData[currentBranch][currentMonth].salaries[idx][key] = (key === 'name' || key === 'notes') ? val : (parseFloat(val) || 0);
+            saveAllDataToStorage();
+            renderAllViews();
+        }
+
+        function removeSalaryRow(idx) {
+            if (currentBranch === 'all') return;
+            storeData[currentBranch][currentMonth].salaries.splice(idx, 1);
+            saveAllDataToStorage();
+            renderAllViews();
+        }
+
+        // Render Annual Summary
+        function renderAnnualSummary() {
+            const bodyEl = document.getElementById('annualTableBody');
+            const allMonthsKeys = new Set();
+
+            Object.keys(storeData.branch1).forEach(m => allMonthsKeys.add(m));
+            Object.keys(storeData.branch2).forEach(m => allMonthsKeys.add(m));
+
+            let totSales = 0, totExp = 0, totSal = 0;
+            let rowsHTML = '';
+
+            Array.from(allMonthsKeys).sort().reverse().forEach(mKey => {
+                const mData = getAggregatedMonthData(mKey);
+                
+                let mSales = 0;
+                mData.sales.forEach(s => mSales += Number(s.directCash) || 0); // Cash only
+                
+                let mExp = 0;
+                mData.expenses.forEach(e => mExp += Number(e.amount)||0);
+
+                let mSal = 0;
+                mData.salaries.forEach(sl => mSal += (Number(sl.w1)||0)+(Number(sl.w2)||0)+(Number(sl.w3)||0)+(Number(sl.w4)||0));
+
+                const mNet = mSales - (mExp + mSal);
+
+                totSales += mSales;
+                totExp += mExp;
+                totSal += mSal;
+
+                rowsHTML += `
+                    <tr class="hover:bg-cream-darker/40 transition">
+                        <td class="p-3 font-bold text-gray-800">${mKey}</td>
+                        <td class="p-3 font-bold text-emerald-700">${mSales.toFixed(2)}</td>
+                        <td class="p-3 font-bold text-amber-700">${mExp.toFixed(2)}</td>
+                        <td class="p-3 font-bold text-purple-700">${mSal.toFixed(2)}</td>
+                        <td class="p-3 font-black text-burgundy text-base bg-gold/10">${mNet.toFixed(2)}</td>
+                        <td class="p-3 text-xs"><span class="px-2 py-1 rounded ${mNet >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'} font-bold">${mNet >= 0 ? 'ربح' : 'خسارة'}</span></td>
+                    </tr>`;
+            });
+
+            bodyEl.innerHTML = rowsHTML;
+            document.getElementById('annTotalSales').innerText = totSales.toFixed(2);
+            document.getElementById('annTotalExpenses').innerText = totExp.toFixed(2);
+            document.getElementById('annTotalSalaries').innerText = totSal.toFixed(2);
+            document.getElementById('annNetProfit').innerText = (totSales - (totExp + totSal)).toFixed(2);
+        }
+
+        function recalculateAnnualSummary() {
+            renderAnnualSummary();
+        }
+
+        // Storage & Export/Import Logic
+        function saveAllDataToStorage() {
+            localStorage.setItem('mehran_restaurant_data_v2', JSON.stringify(storeData));
+        }
+
+        function loadAllDataFromStorage() {
+            const saved = localStorage.getItem('mehran_restaurant_data_v2');
+            if (saved) {
+                try {
+                    storeData = JSON.parse(saved);
+                } catch(e) {
+                    console.error("Storage load error", e);
+                }
+            }
+        }
+
+        function exportJSONBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(storeData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `mehran_accounting_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importJSONBackup(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.branch1 && parsed.branch2) {
+                        storeData = parsed;
+                        saveAllDataToStorage();
+                        renderAllViews();
+                        alert('تم استيراد النسخة الاحتياطية بنجاح!');
+                    } else {
+                        alert('ملف النسخة الاحتياطية غير صالح.');
+                    }
+                } catch (err) {
+                    alert('خطأ في قراءة الملف.');
+                }
+            };
+            fileReader.readAsText(event.target.files[0]);
+        }
+    </script>
+</body>
+</html>
